@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 
 # Load model
-with open("model_RF_param.pkl", "rb") as f:
+with open("model_rf.pkl", "rb") as f:
     model = pickle.load(f)
 
 # Load scaler if used
