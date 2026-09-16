@@ -2,53 +2,64 @@ import streamlit as st
 import numpy as np
 import pickle
 
-# Load model
-with open("model_rf.pkl", "rb") as f:
-    model = pickle.load(f)
+# ----------------------------------
+# Page config
+# ----------------------------------
+st.set_page_config(
+    page_title="Wine Quality Prediction",
+    page_icon="🍷",
+    layout="centered"
+)
 
-# Load scaler if used
-try:
+st.title("🍷 Wine Quality Prediction")
+st.write("Enter the wine chemical properties to predict quality.")
+
+# ----------------------------------
+# Load model and scaler
+# ----------------------------------
+@st.cache_resource
+def load_artifacts():
+    with open("model_rf.pkl", "rb") as f:
+        model = pickle.load(f)
+
     with open("scaler.pkl", "rb") as f:
         scaler = pickle.load(f)
-except:
-    scaler = None
 
-st.title("Edunet Foundation's Health Insurance Cost Prediction")
-st.write("Enter the customer details to predict insurance cost")
+    return model, scaler
 
-# User inputs
-age = st.number_input("Age", min_value=0, max_value=100, value=30)
-bmi = st.number_input("BMI", min_value=10.0, max_value=60.0, value=25.0)
-#bloodpressure = st.number_input("Blood Pressure", min_value=50, max_value=200, value=120)
-children = st.number_input("Number of Children", min_value=0, max_value=5, value=0)
+model, scaler = load_artifacts()
 
-gender = st.selectbox("Gender", ["Female", "Male"])
-#diabetic = st.selectbox("Diabetic", ["No", "Yes"])
-smoker = st.selectbox("Smoker", ["No", "Yes"])
-region = st.selectbox("Region", ["northeast", "northwest", "southeast", "southwest"])
+# ----------------------------------
+# Feature inputs
+# ----------------------------------
+feature_inputs = {
+    'fixed acidity': st.number_input('Fixed Acidity', min_value=0.0, value=7.4),
+    'volatile acidity': st.number_input('Volatile Acidity', min_value=0.0, value=0.7),
+    'citric acid': st.number_input('Citric Acid', min_value=0.0, value=0.0),
+    'residual sugar': st.number_input('Residual Sugar', min_value=0.0, value=1.9),
+    'chlorides': st.number_input('Chlorides', min_value=0.0, value=0.076),
+    'free sulfur dioxide': st.number_input('Free Sulfur Dioxide', min_value=0.0, value=11.0),
+    'total sulfur dioxide': st.number_input('Total Sulfur Dioxide', min_value=0.0, value=34.0),
+    'density': st.number_input('Density', min_value=0.0, value=0.9978),
+    'pH': st.number_input('pH', min_value=0.0, value=3.51),
+    'sulphates': st.number_input('Sulphates', min_value=0.0, value=0.56),
+    'alcohol': st.number_input('Alcohol', min_value=0.0, value=9.4),
+}
 
-# Manual encoding (same as get_dummies)
-gender_male = 1 if gender == "Male" else 0
-#diabetic_yes = 1 if diabetic == "Yes" else 0
-smoker_yes = 1 if smoker == "Yes" else 0
+# Maintain correct feature order
+feature_names = list(feature_inputs.keys())
+input_values = [feature_inputs[f] for f in feature_names]
 
-region_northwest = 1 if region == "northwest" else 0
-region_southeast = 1 if region == "southeast" else 0
-region_southwest = 1 if region == "southwest" else 0
-# northeast → all zeros
+# ----------------------------------
+# Prediction
+# ----------------------------------
+if st.button("Predict Wine Quality"):
+    input_array = np.array(input_values).reshape(1, -1)
 
-# Combine inputs
-input_data = np.array([[
-    age, bmi, children,
-    gender_male,  smoker_yes,
-    region_northwest, region_southeast, region_southwest
-]])
+    # Scale input
+    scaled_input = scaler.transform(input_array)
 
-# Apply scaling if used
-if scaler:
-    input_data = scaler.transform(input_data)
+    # Predict
+    prediction = model.predict(scaled_input)
 
-# Predict
-if st.button("Predict Insurance Cost"):
-    prediction = model.predict(input_data)
-    st.success(f"Estimated Insurance Cost: ₹ {prediction[0]:,.2f}")
+    st.success(f"🍷 Predicted Wine Quality: **{int(prediction[0])}**")
